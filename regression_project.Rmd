@@ -1,0 +1,119 @@
+---
+title: "Regression Models Project Report - Motor Trend Data Analysis"
+author: "Ravi Kumar Yadav"
+output: word_document
+---
+
+## Executive Summary
+In this project detailed Analysis of the mtcars data has been performed. Main objective of the research is to quntify:
+
+1. Is an automatic or manual transmission better for MPG?
+2. Quantifying how different is the MPG between automatic and manual transmissions?
+
+Regression models and exploratory data analyses is uesed to mainly explore how automatic and manual transmissions features affect the MPG feature.
+
+## Exploratory Data Analysis 
+In this secsion some exploratory data analysis is performed for the mtcars data. First we load the data, display the head, did data transformation for necessary variables from numerics to factors . Attach function is used to attach the database to R search path, so objects in the database can be accessed by simply giving their names.. Then Structure of the transformed data is available in appendix #1.
+```{r, results='hide'}
+library(ggplot2)
+data(mtcars)
+head(mtcars) # Sample Data
+dim(mtcars)
+mtcars$cyl <- factor(mtcars$cyl)
+mtcars$vs <- factor(mtcars$vs)
+mtcars$am <- factor(mtcars$am,labels=c('Automatic','Manual'))
+mtcars$gear <- factor(mtcars$gear)
+mtcars$carb <- factor(mtcars$carb)
+attach(mtcars)
+```
+
+Plots fpr the exploratory data analysis is added in the **Appendix**. Box plot very clearly indicates the higher level of MPG for Manual transmission  type. And in the Pair plot we can see higher correlation between variable like "wt", "hp", "disp".
+
+## Inference
+In this section t.test is performed for the NULL hypothesis as MPG for Automatic and Manual Transsmission are from same same population assuming MEG has a normal distribution.
+```{r}
+result <- t.test(mpg ~ am)
+result$p.value
+result$conf
+result$estimate
+```
+Confidence interval does not include zero and the p value is 0.001373638, so the NUll hypothesis an be easily rejected. Mean for MPG value is almost 7 more for manual transmission type than automatic transmission.
+
+## Regression Analysis
+In this section, we start building linear regression models based on the different variables and try to find out the best model fit and compare it with the base model which we have using anova
+
+based on the pairs plot where several variables seem to have high correlation with mpg, We build an initial model with all the variables as predictors, and perfom stepwise model selection to select significant predictors for the final model which is the best model. This is taken care by the step method which runs lm multiple times to build multiple regression models and select the best variables from them using both forward selection and backward elimination methods.
+
+```{r, results='hide'}
+init_model <- lm(mpg ~ ., data = mtcars)
+best_model <- step(init_model, direction = "both")
+```
+Please check the summary of the best model in the appendix #4. From the best model details, we observe that the adjusted R2 value is 0.84 which is the maximum obtained considering all combinations of variables. Thus, we can conclude that more than 84% of the variability is explained by the above model. 
+
+Next, we fit the simple model with MPG as the outcome variable and Transmission as the predictor variable
+```{r}
+amModel<-lm(mpg ~ am, data=mtcars)
+```  
+Please check appendix #5 for summary.The Adjusted R-squared value is 0.3385, which means that the model can explain about 34% of the variance of the MPG variable. The low Adjusted R-squared value also indicates that we need to add other variables to the model.
+
+Please refer to the Appendix #6. According to the scatter plot, it indicates that there appear to be an interaction term between "wt" variable and "am" variable, since automatic cars tend to weigh heavier than manual cars. Thus, we have the following model including the interaction term: 
+
+```{r}
+amIntWtModel<-lm(mpg ~ wt + qsec + am + wt:am, data=mtcars)
+```  
+
+Check the summary of this model in appendix # 7. Adjusted R-squared value is 0.8804, which means that the model can explain about 88% of the variance of the MPG variable. This is the a very good model, so we end up selecting this as the best model "mpg ~ wt + qsec + am + wt:am".
+
+## Residuals and Diagnostics
+Please refer to the appendix #8 for the plots. According to the residual plots, we can verify the following underlying assumptions:  
+1. The Residuals vs. Fitted plot shows no consistent pattern, supporting the accuracy of the independence assumption.  
+2. The Normal Q-Q plot indicates that the residuals are normally distributed because the points lie closely to the line.  
+3. The Scale-Location plot confirms the constant variance assumption, as the points are randomly distributed.  
+4. The Residuals vs. Leverage argues that no outliers are present, as all values fall well within the 0.5 bands.
+
+Therefore, the above analyses meet all basic assumptions of linear regression and asnwers the question as well. 
+
+## Appendix 
+1. Structure of the transformed data
+```{r}
+str(mtcars)
+```
+
+2. Boxplot of MPG vs. Transmission Type  
+```{r}
+boxplot(mpg ~ am, xlab="Transmission Type", ylab="MPG", main="Boxplot of MPG vs.Transmission")
+```  
+
+3. Pair Graph of The Motor Trend
+```{r}
+pairs(mtcars, panel=panel.smooth, main="Pair Graph of Motor Trend")
+```  
+
+4.Summay of the best regression model
+```{r}
+summary(best_model)
+```
+
+5.Summay of the regression model with am as predictor
+```{r}
+summary(amModel)
+```
+
+6.Scatter Plot of MPG vs. Weight colored by Transmission  
+```{r}
+ggplot(mtcars, aes(x=wt, y=mpg, group=am, color=am, height=3, width=3)) + geom_point() +  
+scale_colour_discrete(labels=c("Automatic", "Manual")) + 
+xlab("weight") + ggtitle("Scatter Plot of MPG vs. Weight colored by Transmission")
+``` 
+
+7.Summay of the regression model with am as predictor
+```{r}
+summary(amIntWtModel)
+```
+
+8.Residual Plots 
+```{r}
+par(mfrow = c(2, 2))
+plot(amIntWtModel)
+```
+
